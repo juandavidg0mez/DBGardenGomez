@@ -1083,3 +1083,430 @@ WHERE CL.codigo_empleado_rep_ventas IS NULL;
 | Maria Garcia Lopez | Juan Perez Gonzalez |
 +--------------------+---------------------+
 </pre>
+
+# Consultas resumen
+
+1. ¿Cuántos empleados hay en la compañía?
+~~~~mysql
+SELECT COUNT(*) AS Total_Registro_Empleado
+FROM empleado;
+~~~~
+## Resultado:
+<pre>
++-------------------------+
+| Total_Registro_Empleado |
++-------------------------+
+|                      20 |
++-------------------------+
+</pre>
+2. ¿Cuántos clientes tiene cada país?
+~~~~mysql
+SELECT COUNT(CIU.idCiudad) AS Cliente_Pais, PA.nombrePais AS Pais
+FROM pais AS PA
+INNER JOIN region AS RE ON PA.idPais = RE.idPais
+INNER JOIN ciudad AS CIU ON RE.idRegion = CIU.`idRegion`
+INNER JOIN cliente AS CL ON CIU.idCiudad = CL.idCiudad
+GROUP BY Pais;
+~~~~
+## Resultado:
+<pre>
++--------------+----------------+
+| Cliente_Pais | Pais           |
++--------------+----------------+
+|            6 | Argentina      |
+|            2 | Uruguay        |
+|            2 | Paraguay       |
+|            2 | España         |
+|            2 | Francia        |
+|            3 | Italia         |
+|            5 | Estados Unidos |
++--------------+----------------+
+</pre>
+3. ¿Cuál fue el pago medio en 2009?
+
+~~~~mysql
+SELECT FORMAT(AVG(total), 1) AS Media_2009
+FROM pago
+WHERE YEAR(fecha_pago) = '2009';
+~~~~
+## Resultado:
+<pre>
++------------+
+| Media_2009 |
++------------+
+| 325.0      |
++------------+
+</pre>
+4. ¿Cuántos pedidos hay en cada estado? Ordena el resultado de forma
+descendente por el número de pedidos.
+~~~~mysql
+SELECT  COUNT(ES.idEstadoPedido) AS Cant_EstadoXPedido , ES.`estadoNombrePedido` AS EstadoXPedido
+from estadopedido AS ES
+INNER JOIN pedido AS PE ON ES.`idEstadoPedido`= PE.`idEstadoPedido`
+GROUP BY EstadoXPedido;
+~~~~
+## Resultado:
+<pre>
++--------------------+------------------------------+
+| Cant_EstadoXPedido | EstadoXPedido                |
++--------------------+------------------------------+
+|                  3 | Pendiente                    |
+|                  1 | Rechazado                    |
+|                  1 | En espera de pago            |
+|                  1 | Enviado                      |
+|                  1 | Entregado                    |
+|                  1 | Cancelado por falta de stock |
+|                  1 | En revisión                  |
+|                  1 | Reembolsado                  |
+|                  1 | Devuelto                     |
+|                  2 | Rechazado por exceso de pago |
++--------------------+------------------------------+
+</pre>
+5. Calcula el precio de venta del producto más caro y más barato en una
+misma consulta.
+~~~~mysql
+SELECT 
+    (SELECT nombre FROM producto WHERE precio_venta = (SELECT MAX(precio_venta) FROM producto)) AS ProMax,
+    MAX(precio_venta) AS Max_Precio,
+    (SELECT nombre FROM producto WHERE precio_venta = (SELECT MIN(precio_venta) FROM producto)) AS ProMin,
+    MIN(precio_venta) AS Min_Precio
+FROM 
+    producto;
+~~~~
+## Resultado:
+<pre>
++---------+------------+--------+------------+
+| ProMax  | Max_Precio | ProMin | Min_Precio |
++---------+------------+--------+------------+
+| Naranjo |      50.99 | Menta  |       8.99 |
++---------+------------+--------+------------+
+</pre>
+6. Calcula el número de clientes que tiene la empresa.
+~~~~mysql
+SELECT COUNT(*) AS Numero_Clientes
+FROM cliente;
+~~~~
+## Resultado:
+<pre>
++-----------------+
+| Numero_Clientes |
++-----------------+
+|              22 |
++-----------------+
+</pre>
+7. ¿Cuántos clientes existen con domicilio en la ciudad de Madrid?
+~~~~mysql
+SELECT COUNT(DC.idCliente) AS Cliente
+FROM ciudad AS CI
+INNER JOIN cliente AS CL ON CI.idCiudad = CL.idCiudad
+INNER JOIN direccioncliente AS DC ON CL.codigo_cliente = DC.idCliente
+WHERE CI.nombre = 'Madrid';
+~~~~
+## Resultado:
+<pre>
++---------+
+| Cliente |
++---------+
+|       1 |
++---------+
+</pre>
+8. ¿Calcula cuántos clientes tiene cada una de las ciudades que empiezan
+por M?
+~~~~mysql
+SELECT COUNT(CI.codigo_cliente) AS Cliente , CL.nombre as CiudadX_M
+FROM cliente AS CI
+INNER JOIN ciudad AS CL ON CI.idCiudad = CL.idCiudad
+WHERE  CL.nombre LIKE 'M%'
+GROUP BY CiudadX_M;
+~~~~
+## Resultado:
+<pre>
++---------+------------+
+| Cliente | CiudadX_M  |
++---------+------------+
+|       1 | Mendoza    |
+|       1 | Montevideo |
+|       1 | Madrid     |
+|       1 | Marsella   |
+|       1 | Milán      |
++---------+------------+
+</pre>
+9. Devuelve el nombre de los representantes de ventas y el número de clientes
+al que atiende cada uno.
+~~~~mysql
+SELECT 
+    CONCAT(EM.nombre, ' ', COALESCE(EM.apellido1, ''), ' ', COALESCE(EM.apellido2, '')) AS Empleado, COUNT(CL.codigo_empleado_rep_ventas) AS CLientes_X_empleado
+    FROM empleado AS EM
+INNER JOIN cliente AS CL ON EM.codigo_empleado = CL.codigo_empleado_rep_ventas
+GROUP BY Empleado;
+~~~~
+## Resultado:
+<pre>
++---------------------------+---------------------+
+| Empleado                  | CLientes_X_empleado |
++---------------------------+---------------------+
+| Carlos Martinez Hernandez |                   1 |
+| Ana Rodriguez Diaz        |                   1 |
+| Pedro Sanchez Lopez       |                   1 |
+| Laura Gomez Fernandez     |                   1 |
+| Javier Ramirez Perez      |                   1 |
+| Sofia Reyes Santos        |                   1 |
+| Diego Hernandez Gutierrez |                   2 |
+| Luisa Torres Martin       |                   1 |
+| Miguel Flores Gomez       |                   1 |
+| Carmen Diaz Ruiz          |                   1 |
+| Roberto Jimenez Soto      |                   1 |
+| Elena Alvarez Lopez       |                   1 |
+| Oscar Gonzalez Navarro    |                   1 |
+| Julia Molina Gomez        |                   1 |
+| Andres Ruiz Fernandez     |                   1 |
+| Ana Lopez Perez           |                   1 |
+| Raul Santos Gonzalez      |                   1 |
+| Marta Fernandez Rodriguez |                   2 |
++---------------------------+---------------------+
+</pre>
+10. Calcula el número de clientes que no tiene asignado representante de
+ventas.
+~~~~mysql
+SELECT 
+    COUNT(EM.codigo_empleado) AS CLientes_X_empleado
+    FROM empleado AS EM
+LEFT JOIN cliente AS CL ON EM.codigo_empleado = CL.codigo_empleado_rep_ventas
+WHERE CL.codigo_empleado_rep_ventas IS NULL;
+~~~~
+## Resultado:
+<pre>
++---------------------+
+| CLientes_X_empleado |
++---------------------+
+|                   2 |
++---------------------+
+</pre>
+11. Calcula la fecha del primer y último pago realizado por cada uno de los
+clientes. El listado deberá mostrar el nombre y los apellidos de cada cliente.
+~~~~mysql
+SELECT  MAX(PR.fecha_pago) AS Fecha_MAX, 
+        MIN(PR.fecha_pago) AS Fecha_MIN,
+        CL.nombre_cliente AS Cliente
+FROM pago AS PR
+LEFT JOIN cliente AS CL ON PR.codigo_cliente = CL.codigo_cliente
+GROUP BY Cliente;
+~~~~
+## Resultado:
+<pre>
++------------+------------+------------------------+
+| Fecha_MAX  | Fecha_MIN  | Cliente                |
++------------+------------+------------------------+
+| 2023-05-29 | 2023-05-29 | Acme Corporation       |
+| 2022-07-29 | 2022-07-29 | Tech Innovations LLC   |
+| 2021-01-15 | 2021-01-15 | Global Solutions Inc.  |
+| 2013-09-01 | 2013-09-01 | Redwood Retailers      |
+| 2009-07-19 | 2009-07-19 | Fresh Foods Ltd.       |
+| 2017-10-04 | 2017-10-04 | Evergreen Enterprises  |
+| 2002-09-15 | 2002-09-15 | Dynamic Designs Co.    |
+| 1988-05-13 | 1988-05-13 | Creative Solutions     |
+| 2009-05-15 | 2009-05-15 | Golden Gate Imports    |
+| 2008-05-15 | 2008-05-15 | Peak Performance Inc.  |
+| 2008-11-23 | 2008-11-23 | Blue Ocean Enterprises |
++------------+------------+------------------------+
+</pre>
+12. Calcula el número de productos diferentes que hay en cada uno de los
+pedidos.
+
+~~~~mysql
+SELECT 
+    P.codigo_pedido,
+    COUNT(DISTINCT DP.codigo_producto) AS numero_productos
+FROM 
+    pedido AS P
+INNER JOIN 
+    detalle_pedido AS DP ON P.codigo_pedido = DP.codigo_pedido
+GROUP BY 
+    P.codigo_pedido;
+~~~~
+## Resultado:
+<pre>
++---------------+------------------+
+| codigo_pedido | numero_productos |
++---------------+------------------+
+|         12335 |                3 |
+|         12343 |                3 |
+|         12945 |                2 |
+|         16347 |                3 |
+|         18346 |                3 |
+|         45612 |                3 |
+|         45616 |                2 |
+|         45912 |                3 |
+|         48612 |                3 |
+|         49612 |                2 |
+|         95618 |                3 |
++---------------+------------------+
+</pre>
+13. Calcula la suma de la cantidad total de todos los productos que aparecen en
+cada uno de los pedidos.
+~~~~mysql
+SELECT 
+    P.codigo_pedido,
+    SUM(DP.cantidad) AS cantidad_total
+FROM 
+    pedido AS P
+INNER JOIN 
+    detalle_pedido AS DP ON P.codigo_pedido = DP.codigo_pedido
+GROUP BY 
+    P.codigo_pedido;
+~~~~
+## Resultado:
+<pre>
++---------------+----------------+
+| codigo_pedido | cantidad_total |
++---------------+----------------+
+|         12335 |             17 |
+|         12343 |             11 |
+|         12945 |             10 |
+|         16347 |             35 |
+|         18346 |             19 |
+|         45612 |             16 |
+|         45616 |             14 |
+|         45912 |             17 |
+|         48612 |             28 |
+|         49612 |              8 |
+|         95618 |             19 |
++---------------+----------------+
+</pre>
+14. Devuelve un listado de los 20 productos más vendidos y el número total de
+unidades que se han vendido de cada uno. El listado deberá estar ordenado
+por el número total de unidades vendidas.
+~~~~mysql
+SELECT 
+    DP.codigo_producto,
+    P.nombre,
+    SUM(DP.cantidad) AS total_unidades_vendidas
+FROM 
+    detalle_pedido AS DP
+INNER JOIN 
+    producto AS P ON DP.codigo_producto = P.codigo_producto
+GROUP BY 
+    DP.codigo_producto, P.nombre
+ORDER BY 
+    total_unidades_vendidas DESC
+LIMIT 20;
+~~~~
+## Resultado:
+<pre>
++-----------------+-----------------+-------------------------+
+| codigo_producto | nombre          | total_unidades_vendidas |
++-----------------+-----------------+-------------------------+
+|               1 | Herbacea Verde  |                      36 |
+|               4 | Manzano         |                      27 |
+|              10 | Tulipán         |                      24 |
+|               6 | Herbacea Azul   |                      22 |
+|               2 | Pala Multiuso   |                      21 |
+|               3 | Menta           |                      19 |
+|               5 | Rosa            |                      17 |
+|               8 | Lavanda         |                      16 |
+|               7 | Tijeras de Poda |                      12 |
++-----------------+-----------------+-------------------------+
+</pre>
+15. La facturación que ha tenido la empresa en toda la historia, indicando la
+base imponible, el IVA y el total facturado. La base imponible se calcula
+sumando el coste del producto por el número de unidades vendidas de la
+tabla detalle_pedido. El IVA es el 21 % de la base imponible, y el total la
+suma de los dos campos anteriores.
+~~~~mysql
+SELECT 
+    SUM(cantidad * `precioUnidad`) AS base_imponible,
+    SUM(cantidad * `precioUnidad`) * 0.21 AS IVA,
+    SUM(cantidad * `precioUnidad`) * 1.21 AS total_facturado
+    
+
+FROM 
+    detalle_pedido;
+~~~~
+## Resultado:
+<pre>
++----------------+----------+-----------------+
+| base_imponible | IVA      | total_facturado |
++----------------+----------+-----------------+
+|        4415.88 | 927.3348 |       5343.2148 |
++----------------+----------+-----------------+
+</pre>
+/*
+16. La misma información que en la pregunta anterior, pero agrupada por
+código de producto.
+*/
+~~~~mysql
+SELECT 
+    SUM(cantidad * `precioUnidad`) AS base_imponible,
+    SUM(cantidad * `precioUnidad`) * 0.21 AS IVA,
+    SUM(cantidad * `precioUnidad`) * 1.21 AS total_facturado,
+    codigo_producto AS Produc_Codec
+FROM 
+    detalle_pedido
+GROUP BY Produc_Codec;
+~~~~
+## Resultado:
+<pre>
++----------------+----------+-----------------+--------------+
+| base_imponible | IVA      | total_facturado | Produc_Codec |
++----------------+----------+-----------------+--------------+
+|         650.78 | 136.6638 |        787.4438 |            1 |
+|         395.18 |  82.9878 |        478.1678 |            2 |
+|         441.33 |  92.6793 |        534.0093 |            3 |
+|         636.34 | 133.6314 |        769.9714 |            4 |
+|         517.97 | 108.7737 |        626.7437 |            5 |
+|         755.78 | 158.7138 |        914.4938 |            6 |
+|         302.90 |  63.6090 |        366.5090 |            7 |
+|         396.84 |  83.3364 |        480.1764 |            8 |
+|         318.76 |  66.9396 |        385.6996 |           10 |
++----------------+----------+-----------------+--------------+
+</pre>
+18. Lista las ventas totales de los productos que hayan facturado más de 300
+euros. Se mostrará el nombre, unidades vendidas, total facturado y total
+facturado con impuestos (21% IVA).
+~~~~mysql
+SELECT SUM(DP.precioUnidad * DP.cantidad) AS FacturadoX_producto,
+        SUM(DP.precioUnidad * DP.cantidad) * 0.21 AS FacturadoX_producto_IVA,
+        PR.nombre,
+        DP.cantidad AS Unidade_Vendidas
+FROM detalle_pedido AS DP
+INNER JOIN producto AS PR ON DP.codigo_producto = PR.codigo_producto
+GROUP BY PR.nombre, Unidade_Vendidas
+HAVING SUM(DP.precioUnidad * DP.cantidad) > 300;
+~~~~
+## Resultado:
+<pre>
++---------------------+-------------------------+---------------+------------------+
+| FacturadoX_producto | FacturadoX_producto_IVA | nombre        | Unidade_Vendidas |
++---------------------+-------------------------+---------------+------------------+
+|              324.50 |                 68.1450 | Rosa          |               11 |
+|              415.87 |                 87.3327 | Herbacea Azul |               13 |
+|              305.28 |                 64.1088 | Lavanda       |                6 |
++---------------------+-------------------------+---------------+------------------+
+</pre>
+19. Muestre la suma total de todos los pagos que se realizaron para cada uno
+de los años que aparecen en la tabla pagos.
+~~~~mysql
+SELECT 
+    YEAR(fecha_pago) AS año,
+    SUM(total) AS total_pagado
+FROM 
+    pago
+GROUP BY 
+    YEAR(fecha_pago);
+~~~~
+## Resultado:
+<pre>
++------+--------------+
+| año  | total_pagado |
++------+--------------+
+| 2023 |       150.00 |
+| 2022 |       200.00 |
+| 2021 |       175.50 |
+| 2013 |       300.00 |
+| 2009 |       650.00 |
+| 2017 |       180.00 |
+| 2002 |       220.75 |
+| 1988 |       175.00 |
+| 2008 |       625.00 |
++------+--------------+
+</pre>
