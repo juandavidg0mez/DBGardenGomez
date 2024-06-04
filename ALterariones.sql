@@ -11,6 +11,14 @@ UPDATE pago
 SET fecha_pago = '2008-05-15'
 WHERE Id_transaccion = 10;
 
+UPDATE pago
+SET fecha_pago = '2009-05-15'
+WHERE Id_transaccion = 9;
+
+UPDATE pago
+SET fecha_pago = '2009-07-19'
+WHERE Id_transaccion = 5;
+
 UPDATE pedido
 SET fecha_pedido =  '2023-01-23'
 WHERE codigo_pedido = 49612;

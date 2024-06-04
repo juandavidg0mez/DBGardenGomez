@@ -586,3 +586,225 @@ FROM empleado AS EM
 LEFT JOIN cliente AS CL ON EM.codigo_empleado = CL.codigo_empleado_rep_ventas
 INNER JOIN empleado AS JF ON EM.codigo_jefe = JF.codigo_empleado
 WHERE CL.codigo_empleado_rep_ventas IS NULL;
+
+-- Consultas resumen
+/*
+1. ¿Cuántos empleados hay en la compañía?
+*/
+
+SELECT COUNT(*) AS Total_Registro_Empleado
+FROM empleado;
+
+/*
+2. ¿Cuántos clientes tiene cada país?
+*/
+
+SELECT COUNT(CIU.idCiudad) AS Cliente_Pais, PA.nombrePais AS Pais
+FROM pais AS PA
+INNER JOIN region AS RE ON PA.idPais = RE.idPais
+INNER JOIN ciudad AS CIU ON RE.idRegion = CIU.`idRegion`
+INNER JOIN cliente AS CL ON CIU.idCiudad = CL.idCiudad
+GROUP BY Pais;
+
+/*
+3. ¿Cuál fue el pago medio en 2009?
+*/
+
+
+SELECT FORMAT(AVG(total), 1) AS Media_2009
+FROM pago
+WHERE YEAR(fecha_pago) = '2009';
+
+/*
+4. ¿Cuántos pedidos hay en cada estado? Ordena el resultado de forma
+descendente por el número de pedidos.
+*/
+
+SELECT  COUNT(ES.idEstadoPedido) AS Cant_EstadoXPedido , ES.`estadoNombrePedido` AS EstadoXPedido
+from estadopedido AS ES
+INNER JOIN pedido AS PE ON ES.`idEstadoPedido`= PE.`idEstadoPedido`
+GROUP BY EstadoXPedido;
+
+/*
+5. Calcula el precio de venta del producto más caro y más barato en una
+misma consulta.
+*/
+
+SELECT 
+    (SELECT nombre FROM producto WHERE precio_venta = (SELECT MAX(precio_venta) FROM producto)) AS ProMax,
+    MAX(precio_venta) AS Max_Precio,
+    (SELECT nombre FROM producto WHERE precio_venta = (SELECT MIN(precio_venta) FROM producto)) AS ProMin,
+    MIN(precio_venta) AS Min_Precio
+FROM 
+    producto;
+
+/*
+6. Calcula el número de clientes que tiene la empresa.
+*/
+
+SELECT COUNT(*) AS Numero_Clientes
+FROM cliente;
+
+/*
+7. ¿Cuántos clientes existen con domicilio en la ciudad de Madrid?
+*/
+
+SELECT COUNT(DC.idCliente) AS Cliente
+FROM ciudad AS CI
+INNER JOIN cliente AS CL ON CI.idCiudad = CL.idCiudad
+INNER JOIN direccioncliente AS DC ON CL.codigo_cliente = DC.idCliente
+WHERE CI.nombre = 'Madrid';
+
+/*
+8. ¿Calcula cuántos clientes tiene cada una de las ciudades que empiezan
+por M?
+*/
+SELECT COUNT(CI.codigo_cliente) AS Cliente , CL.nombre as CiudadX_M
+FROM cliente AS CI
+INNER JOIN ciudad AS CL ON CI.idCiudad = CL.idCiudad
+WHERE  CL.nombre LIKE 'M%'
+GROUP BY CiudadX_M;
+
+/*
+9. Devuelve el nombre de los representantes de ventas y el número de clientes
+al que atiende cada uno.
+*/
+
+
+SELECT 
+    CONCAT(EM.nombre, ' ', COALESCE(EM.apellido1, ''), ' ', COALESCE(EM.apellido2, '')) AS Empleado, COUNT(CL.codigo_empleado_rep_ventas) AS CLientes_X_empleado
+    FROM empleado AS EM
+INNER JOIN cliente AS CL ON EM.codigo_empleado = CL.codigo_empleado_rep_ventas
+GROUP BY Empleado;
+
+/*
+10. Calcula el número de clientes que no tiene asignado representante de
+ventas.
+*/
+
+SELECT 
+    COUNT(EM.codigo_empleado) AS CLientes_X_empleado
+    FROM empleado AS EM
+LEFT JOIN cliente AS CL ON EM.codigo_empleado = CL.codigo_empleado_rep_ventas
+WHERE CL.codigo_empleado_rep_ventas IS NULL;
+
+/*
+11. Calcula la fecha del primer y último pago realizado por cada uno de los
+clientes. El listado deberá mostrar el nombre y los apellidos de cada cliente.
+*/
+
+SELECT  MAX(PR.fecha_pago) AS Fecha_MAX, 
+        MIN(PR.fecha_pago) AS Fecha_MIN,
+        CL.nombre_cliente AS Cliente
+FROM pago AS PR
+LEFT JOIN cliente AS CL ON PR.codigo_cliente = CL.codigo_cliente
+GROUP BY Cliente;
+
+/*
+12. Calcula el número de productos diferentes que hay en cada uno de los
+pedidos.
+*/
+
+SELECT 
+    P.codigo_pedido,
+    COUNT(DISTINCT DP.codigo_producto) AS numero_productos
+FROM 
+    pedido AS P
+INNER JOIN 
+    detalle_pedido AS DP ON P.codigo_pedido = DP.codigo_pedido
+GROUP BY 
+    P.codigo_pedido;
+
+/*
+13. Calcula la suma de la cantidad total de todos los productos que aparecen en
+cada uno de los pedidos.
+*/
+
+SELECT 
+    P.codigo_pedido,
+    SUM(DP.cantidad) AS cantidad_total
+FROM 
+    pedido AS P
+INNER JOIN 
+    detalle_pedido AS DP ON P.codigo_pedido = DP.codigo_pedido
+GROUP BY 
+    P.codigo_pedido;
+
+/*
+14. Devuelve un listado de los 20 productos más vendidos y el número total de
+unidades que se han vendido de cada uno. El listado deberá estar ordenado
+por el número total de unidades vendidas.
+*/
+
+SELECT 
+    DP.codigo_producto,
+    P.nombre,
+    SUM(DP.cantidad) AS total_unidades_vendidas
+FROM 
+    detalle_pedido AS DP
+INNER JOIN 
+    producto AS P ON DP.codigo_producto = P.codigo_producto
+GROUP BY 
+    DP.codigo_producto, P.nombre
+ORDER BY 
+    total_unidades_vendidas DESC
+LIMIT 20;
+
+/*
+La facturación que ha tenido la empresa en toda la historia, indicando la
+base imponible, el IVA y el total facturado. La base imponible se calcula
+sumando el coste del producto por el número de unidades vendidas de la
+tabla detalle_pedido. El IVA es el 21 % de la base imponible, y el total la
+suma de los dos campos anteriores.
+*/
+
+SELECT 
+    SUM(cantidad * `precioUnidad`) AS base_imponible,
+    SUM(cantidad * `precioUnidad`) * 0.21 AS IVA,
+    SUM(cantidad * `precioUnidad`) * 1.21 AS total_facturado
+    
+
+FROM 
+    detalle_pedido;
+
+/*
+16. La misma información que en la pregunta anterior, pero agrupada por
+código de producto.
+*/
+
+SELECT 
+    SUM(cantidad * `precioUnidad`) AS base_imponible,
+    SUM(cantidad * `precioUnidad`) * 0.21 AS IVA,
+    SUM(cantidad * `precioUnidad`) * 1.21 AS total_facturado,
+    codigo_producto AS Produc_Codec
+FROM 
+    detalle_pedido
+GROUP BY Produc_Codec;
+
+/*
+18. Lista las ventas totales de los productos que hayan facturado más de 300
+euros. Se mostrará el nombre, unidades vendidas, total facturado y total
+facturado con impuestos (21% IVA).
+*/
+
+SELECT SUM(DP.precioUnidad * DP.cantidad) AS FacturadoX_producto,
+        SUM(DP.precioUnidad * DP.cantidad) * 0.21 AS FacturadoX_producto_IVA,
+        PR.nombre,
+        DP.cantidad AS Unidade_Vendidas
+FROM detalle_pedido AS DP
+INNER JOIN producto AS PR ON DP.codigo_producto = PR.codigo_producto
+GROUP BY PR.nombre, Unidade_Vendidas
+HAVING SUM(DP.precioUnidad * DP.cantidad) > 300;
+
+/*
+19. Muestre la suma total de todos los pagos que se realizaron para cada uno
+de los años que aparecen en la tabla pagos.
+*/
+SELECT 
+    YEAR(fecha_pago) AS año,
+    SUM(total) AS total_pagado
+FROM 
+    pago
+GROUP BY 
+    YEAR(fecha_pago);
+
